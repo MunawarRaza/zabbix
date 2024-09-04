@@ -96,7 +96,7 @@ paramters:
 - The parameter can also be left empty, thus using the default value. In that case, the appropriate number of commas must be added if any further parameters are specified. For example, item key icmpping[,,200,,500] would specify that the interval between individual pings is 200 milliseconds, timeout - 500 milliseconds, and all other parameters are left at their defaults
 - It is possible to include macros in the parameters. Those can be user macros or some of the built-in macros
 
-        - To see what particular built-in macros are supported in item key parameters, search the page Supported macros for [a link](https://www.zabbix.com/documentation/current/en/manual/appendix/macros/supported_by_location).
+        - To see what particular built-in macros are supported in item key parameters, search the page Supported macros for[a link](https://www.zabbix.com/documentation/current/en/manual/appendix/macros/supported_by_location)
 
 
 #### Item types ####
@@ -190,11 +190,13 @@ Macros resolve to a specific value depending on the context.
 
 Zabbix supports the following macros:
 
-{MACRO} - built-in macro (see full list) ![alt text](https://www.zabbix.com/documentation/current/en/manual/appendix/macros/supported_by_location)
-{<macro>.<func>(<params>)} - macro functions
-{$MACRO} - user-defined macro, optionally with context
-{#MACRO} - macro for low-level discovery
-{?EXPRESSION} - expression macro
+- {MACRO} - built-in macro [see full list](https://www.zabbix.com/documentation/current/en/manual/appendix/macros/supported_by_location)
+
+- `{<macro>.<func>(<params>)}` - [macro functions](https://www.zabbix.com/documentation/current/en/manual/config/macros/macro_functions)
+
+- {$MACRO} - user-defined [macro](https://www.zabbix.com/documentation/current/en/manual/config/macros/user_macros), optionally with [context](https://www.zabbix.com/documentation/current/en/manual/config/macros/user_macros_context)
+- {#MACRO} - macro for low-level [discovery](https://www.zabbix.com/documentation/current/en/manual/config/macros/lld_macros)
+- {?EXPRESSION} - [expression macro](https://www.zabbix.com/documentation/current/en/manual/config/macros/expression_macros)
 
 ### More ###
 
