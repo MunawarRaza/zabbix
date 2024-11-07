@@ -117,8 +117,20 @@ Each item type has some supported item keys.
 #### Mass Update ####
 Sometimes you may want to change some attribute for a number of items at once. Instead of opening each individual item for editing, you may use the mass update function for that
 
-
-
+#### Summary of Item ####
+```
+item:
+        item type: (zabbix agent, http checks, script checks...)
+                item_key[params]
+                item_key:
+                        0-9a-zA-Z-_. (name can be)
+                params:
+                        quoted
+                        unquoted
+                        Array
+                Macros:
+                        Can be used in params
+```
 ### value preprocessing ###
 A transformation of received metric value before saving it to the database
 
@@ -139,14 +151,12 @@ Flow:
 
 A simple expression uses a function that is applied to the item with some parameters. The function returns a result that is compared to the threshold, using an operator and a constant.
 
-Syntax: 
-
+Syntax:
+```
 function(/host/key,parameter)<operator><constant>
-
 e.g:
-
 min(/Zabbix server/net.if.in[eth0,bytes],5m)>100K
-
+```
 above will trigger if the number of received bytes during the last five minutes was always over 100 kilobytes
 
 #### Functions ####
@@ -165,6 +175,15 @@ sum(/host/key,10m)	Sum of values in the last 10 minutes.
 sum(/host/key,#10)	Sum of the last ten values.
 ```
 
+#### Summary of Triggers #####
+```
+Triggers:
+        logical expression:
+                function
+                functions paramters
+                functions specific paramters
+                macros
+```
 ### Event ###
 Envent is the state of any triggers. For example we have defined a threshold 80% for RAM. If RAM is go above 80% there should be an itimation. So if RAM usage is below 80% its OK, but when RAM is above to 80% its not OK, it's dangerous. These changes are called events. 
 Trigger Events (OK --> Problem --> OK)
