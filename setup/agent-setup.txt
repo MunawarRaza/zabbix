@@ -1,0 +1,1 @@
+sudo docker run --name zabbix-agent --hostname $(hostname) -e ZBX_SERVER_HOST="IP/DNS" -p10050:10050 --init -d zabbix/zabbix-agent

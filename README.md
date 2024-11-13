@@ -6,6 +6,7 @@
    - [Database Storage](#database-storage)
    - [Web interface ](#web-interface)
    - [Agent](#agent)
+   - [Data Flow](#data-flow)
 4. [Terms used in Zabbix](#terms-used-in-zabbix)
    - 
  
@@ -16,10 +17,9 @@ Zabbix is a software that monitors numerous parameters of a network and the heal
 Zabbix uses a flexible notification mechanism that allows users to configure email-based alerts for virtually any event
 
 Zabbix supports both polling and trapping.
-        Polling:
-                When monitoring software ask to the devices(router,printer..) for his health
-        Trapping:
-                When devices(routers, printers...) sends to monitoring software when something happend
+
+- Polling: When monitoring software ask to the devices(router,printer..) for his health
+- Trapping: When devices(routers, printers...) sends to monitoring software when something happend
 
 ## Zabbix features ##
 - Data gathering
@@ -50,6 +50,16 @@ There are tow types of zabbix agents
 -  Zabbix agent (lightweight, supported on many platforms, written in C)
 -  Zabbix agent 2 (extra-flexible, easily extendable with plugins, written in Go)
 
+### Data Flow ###
+
+- To create an Item that gathers data, first create an host
+- Must have an Item to create Trigger
+- Must have a Trigger to create an Action
+
+e.g 
+
+Create an Item and associate with host, Create a trigger which activates if CPU is high. Create an Action which will send alert if trigger is activated.
+
 ## Terms used in Zabbix ##
 Terms commonly used in Zabbix
 ### host ###
@@ -77,28 +87,6 @@ To prevent a unit from conversion, use the ! prefix, for example, !B. To better 
 0 ! → 0
 ```
 
-#### Item key format ####
-
-Following is the format to specify the key
-
-key_name[parameter1, parameter2, parameter3...]
-
-key_name can be --> 0-9a-zA-Z-_.
-
-paramters:
-        
-- An item key can have multiple parameters that are comma separated
-- Each key parameter can be either
-
-        - a quoted string 
-        - an unquoted string
-        - an array
-- The parameter can also be left empty, thus using the default value. In that case, the appropriate number of commas must be added if any further parameters are specified. For example, item key icmpping[,,200,,500] would specify that the interval between individual pings is 200 milliseconds, timeout - 500 milliseconds, and all other parameters are left at their defaults
-- It is possible to include macros in the parameters. Those can be user macros or some of the built-in macros
-
-        - To see what particular built-in macros are supported in item key parameters, search the page Supported macros for[a link](https://www.zabbix.com/documentation/current/en/manual/appendix/macros/supported_by_location)
-
-
 #### Item types ####
 Item types cover various methods of acquiring data from your system. Each item type comes with its own set of supported item keys and required parameters.
 Its means, it depends on you, how to get or using which type of item type you want to get the value from the target machine
@@ -113,6 +101,32 @@ Following are some of supported Item types:
 - Telnet checks ( agent less monitoring. no need of zabbix-agent)
 
 Each item type has some supported item keys.
+
+#### Item Key ####
+To specify what sort of data to collect from host, use `item key`
+
+#### Item key format ####
+
+Following is the format to specify the key
+
+key_name[parameter1, parameter2, parameter3...]
+
+key_name can be: `0-9a-zA-Z-_.`
+
+paramters:
+        
+- An item key can have multiple parameters that are comma separated
+- Each key parameter can be either
+
+        - a quoted string
+        - an unquoted string
+        - an array
+        - The parameter can also be left empty, thus using the default value. In that case, the appropriate number of commas must be added if any further parameters are specified. For example, item key icmpping[,,200,,500] would specify that the interval between individual pings is 200 milliseconds, timeout - 500 milliseconds, and all other parameters are left at their defaults
+
+- It is possible to include macros in the parameters. Those can be user macros or some of the built-in macros
+
+- To see what particular built-in macros are supported in item key parameters, search the page Supported macros for[a link](https://www.zabbix.com/documentation/current/en/manual/appendix/macros/supported_by_location)
+
 
 #### Mass Update ####
 Sometimes you may want to change some attribute for a number of items at once. Instead of opening each individual item for editing, you may use the mass update function for that
@@ -131,20 +145,21 @@ item:
                 Macros:
                         Can be used in params
 ```
-### value preprocessing ###
-A transformation of received metric value before saving it to the database
+#### value preprocessing ####
+A transformation of received metric value before saving it to the database. This can be done in many cases, for example, if we received bytes in metric result we can convert those into bits before saving into database
 
 ### trigger ###
 
-logical expression that defines a problem threshold and is used to "evaluate" data received in items. For example, define a threshold for any incoming data. On the basis of this data, envent happend 
+Items only collect data. To automatically evaluate incoming data we need to define triggers. A trigger contains an expression that defines a threshold of what is an acceptable level for the data.
 
-When received data are above the threshold, triggers go from 'Ok' into a 'Problem' state. When received data are below the threshold, triggers stay in/return to an 'Ok' state.
+If that level is surpassed by the incoming data, a trigger will "fire" or go into a 'Problem' state - letting us know that something has happened that may require attention. If the level is acceptable again, trigger returns to an 'Ok' state.
 
 - Ok
 - Problem
 - Unknown
 
 #### Trigger expression ####
+
 Logical expression are used in triggers to calculate and to evaluate the data recevied from the target machines.
 
 Flow:
@@ -153,7 +168,7 @@ A simple expression uses a function that is applied to the item with some parame
 
 Syntax:
 ```
-function(/host/key,parameter)<operator><constant>
+function(/host_name/item_key,parameter)<operator><constant>
 e.g:
 min(/Zabbix server/net.if.in[eth0,bytes],5m)>100K
 ```
@@ -161,6 +176,10 @@ above will trigger if the number of received bytes during the last five minutes 
 
 #### Functions ####
 Functions allow to calculate the collected values (average, minimum, maximum, sum), find strings, reference current time and other factors.
+
+Complete list of supported functions https://www.zabbix.com/documentation/current/en/manual/appendix/functions
+
+Typically functions return numeric values for comparison. When returning strings, comparison is possible with the = and <> operators
 
 #### Function parameters ####
 
@@ -171,10 +190,14 @@ Function-specific parameters are placed after the item key and are separated fro
 - Preceded by a hash mark, the parameter has a different meaning. They denote the Nth previous value
 ```
 Expression	        Description
-sum(/host/key,10m)	Sum of values in the last 10 minutes.
-sum(/host/key,#10)	Sum of the last ten values.
+1- sum(/host/key,10m)	Sum of values in the last 10 minutes.
+2- sum(/host/key,#10)	Sum of the last ten values.
 ```
-
+Note: Parameters with a hash mark have a different meaning with the function last - they denote the `Nth previous value`, so given the values 3, 7, 2, 6, 5 (from the most recent to the least recent). Below example
+```
+last(/host/key,#2) would return '7'
+last(/host/key,#5) would return '5'
+```
 #### Summary of Triggers #####
 ```
 Triggers:
