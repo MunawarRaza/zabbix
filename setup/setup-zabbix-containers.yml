@@ -1,87 +1,128 @@
-services:
-  zabbix-postgres:
-    image: postgres:16
-    container_name: zabbix-postgres
-    hostname: zabbix-postgres
-    environment:
-      POSTGRES_DB: "zabbix"
-      POSTGRES_USER: "zabbix"
-      POSTGRES_PASSWORD: "Abcd123"
-    ports:
-    - 8081:5432
-    volumes:
-    - zabbix-postgres-data:/var/lib/postgresql/data
-    networks:
-    - zabbix-network
+name: zabbix-setup
 
-  zabbix-server:
-    image: zabbix/zabbix-server-pgsql:latest
-    container_name: zabbix-server
-    hostname: zabbix-server
+services:
+#========= zabbix-postgres =========#
+  zabbix-postgres:
+    image: ${POSTGRES_DB_IMAGE}:${POSTGRES_DB_IMAGE_VERSION}
+    container_name: ${POSTGRES_DB_CONTAINER_NAME}
+    hostname: ${POSTGRES_DB_CONTAINER_HOSTNAME}
     environment:
-      DB_SERVER_HOST: "zabbix-postgres"
-      POSTGRES_USER: "zabbix"
-      POSTGRES_PASSWORD: "Abcd123"
-      POSTGRES_DB: "zabbix"
-      ZBX_ENABLE_SNMP_TRAPS: true
-    networks:
-    - zabbix-network
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    #env_file:
+    #- ./envs/.env-postgres
     ports:
-    - 10051:10051
+    - target: ${POSTGRES_DB_PORT:-5432}
+      #name: zabbix-postgres # only available in compoe 2.26
+      published: ${POSTGRES_DB_PORT:-5432}
+      protocol: tcp
+      #mode: host
+
+    volumes:
+    - ${DATA_DIRECTORY}/postgres/data:/var/lib/postgresql/data
+    networks:
+    - ${ZABBIX_NETWORK}
+
+#========= zabbix-server =========#
+  zabbix-server:
+    image: ${ZABBIX_SERVER_IMAGE}:${ZABBIX_SERVER_IMAGE_VERSION}
+    container_name: ${ZABBIX_SERVER_CONTAINER_NAME}
+    hostname: ${ZABBIX_SERVER_HOSTNAME_NAME}
+    environment:
+      DB_SERVER_HOST: ${DB_SERVER_HOST}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      ZBX_ENABLE_SNMP_TRAPS: ${ZBX_ENABLE_SNMP_TRAPS}
+    #env_file:
+    #- ./envs/.env-zabbix-svc
+    networks:
+    - ${ZABBIX_NETWORK}
+    ports:
+    - target: ${ZABBIX_SERVER_PORT:-10051}
+      published: ${ZABBIX_SERVER_PORT:-10051}
+      protocol: tcp
+        #mode: host
+    #- ${ZABBIX_SERVER_PORT:-10051}:10051
     depends_on:
     - zabbix-postgres
+    volumes:
+    - ${DATA_DIRECTORY}/zabbix-server/usr/lib/zabbix/alertscripts:/usr/lib/zabbix/alertscripts
+    - ${DATA_DIRECTORY}/zabbix-server/usr/lib/zabbix/externalscripts:/usr/lib/zabbix/externalscripts
+    - ${DATA_DIRECTORY}/zabbix-server/var/lib/zabbix/modules:/var/lib/zabbix/modules
+    - ${DATA_DIRECTORY}/zabbix-server/var/lib/zabbix/enc:/var/lib/zabbix/enc
+    - ${DATA_DIRECTORY}/zabbix-server/var/lib/zabbix/ssl/certs:/var/lib/zabbix/ssl/certs
+    - ${DATA_DIRECTORY}/zabbix-server/var/lib/zabbix/ssl/keys:/var/lib/zabbix/ssl/keys
+    - ${DATA_DIRECTORY}/zabbix-server/var/lib/zabbix/ssl/ssl_ca:/var/lib/zabbix/ssl/ssl_ca
+    - ${DATA_DIRECTORY}/zabbix-server/var/lib/zabbix/snmptraps:/var/lib/zabbix/snmptraps
+    - ${DATA_DIRECTORY}/zabbix-server/var/lib/zabbix/mibs:/var/lib/zabbix/mibs
 
+#========= zabbix-web =========#
   zabbix-web:
-    image: zabbix/zabbix-web-nginx-pgsql:latest
-    container_name: zabbix-web
-    hostname: zabbix-web
+    image: ${ZABBIX_WEB_IMAGE}:${ZABBIX_WEB_IMAGE_VERSION}
+    container_name: ${ZABBIX_WEB_CONTAINER_NAME}
+    hostname: ${ZABBIX_WEB_HOSTNAME}
     environment:
-      ZBX_SERVER_HOST: "zabbix-server"
-      DB_SERVER_HOST: "zabbix-postgres"
-      POSTGRES_USER: "zabbix"
-      POSTGRES_PASSWORD: "Abcd123"
-      POSTGRES_DB: "zabbix"
+      ZBX_SERVER_HOST: ${ZBX_SERVER_HOST}
+      DB_SERVER_HOST: ${DB_SERVER_HOST}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       PHP_TZ: "Asia/Karachi"
     networks:
-    - zabbix-network
+    - ${ZABBIX_NETWORK}
     ports:
-    - 8080:8080
+    - target: ${ZABBIX_WEB_PORT:-8080}
+      published: ${ZABBIX_WEB_PORT:-8080}
+      protocol: tcp
+        #mode: host
+    #- ${ZABBIX_WEB_PORT:-8080}:8080
     depends_on:
     - zabbix-server
 
+#========= zabbix-nginx  =========#
   zabbix-nginx:
-    image: nginx
-    container_name: zabbix-nginx
-    hostname: zabbix-nginx
+    image: ${ZABBIX_WEB_SERVER_IMAGE}:${ZABBIX_WEB_SERVER_IMAGE_VERSION}
+    container_name: ${ZABBIX_WEB_SERVER_CONTAINER_NAME}
+    hostname: ${ZABBIX_WEB_SERVER_HOSTNAME}
     volumes:
     - ./conf.d:/etc/nginx/conf.d
     networks:
-    - zabbix-network
+    - ${ZABBIX_NETWORK}
     ports:
-    - 80:80
-    - 443:443
+    - target: ${ZABBIX_WEB_SERVER_PORT:-80}
+      published: ${ZABBIX_WEB_SERVER_PORT:-80}
+      protocol: tcp
+        #mode: host
     depends_on:
     - zabbix-web
 
-  zabbix-agent:
-    image: zabbix/zabbix-agent:latest
-    container_name: zabbix-agent
-    hostname: $(hostname)
-    environment:
-      ZBX_SERVER_HOST="zabbix-server"
-    volumes:
-    - zabbix-agent-volume:/etc/zabbix
-    networks:
-    - zabbix-network
-    ports:
-    - 10050:10050
-    depends_on:
-    - zabbix-server
+#========= zabbix-agent  =========#
+#  zabbix-agent:
+#    image: ${ZABBIX_AGENT_IMAGE}:${ZABBIX_AGENT_IMAGE_VERSION}
+#    container_name: ${ZABBIX_AGENT_CONTAINER_NAME}
+#    hostname: ${ZABBIX_AGENT_HOSTNAME}
+#    environment:
+#      ZBX_HOSTNAME: ${ZBX_HOSTNAME}
+#      ZBX_SERVER_HOST: ${ZBX_SERVER_HOST}
+#    networks:
+#    - ${ZABBIX_NETWORK}
+#    ports:
+#    - target: ${ZBX_LISTENPORT:-10050}
+#      published: ${ZBX_LISTENPORT:-10050}
+#      protocol: tcp
+#        #mode: host
+#    depends_on:
+#    - zabbix-server
 
-volumes:
-  - zabbix-postgres-data
-  - zabbix-agent-volume
+#volumes:
+  #zabbix-postgres-data:
+    #name: ${POSTGRES_DB_VOLUME}
+      #  zabbix-server-data:
+      #name: ${DATA_DIRECTORY}
 
 networks:
   zabbix-network:
+    name: ${ZABBIX_NETWORK}
     driver: bridge
